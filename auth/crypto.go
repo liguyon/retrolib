@@ -42,7 +42,7 @@ func EncryptPassword(pw, key string) string {
 
 // DecryptPassword decrypts a password that has been encrypted using Retro's encryption method #1.
 // key is the 32-character key contained in the HC packet.
-// This function does not perform validation. The ciphetext and key are expected to be valid.
+// This function does not perform validation. The ciphertext and key are expected to be valid.
 func DecryptPassword(ct, key string) string {
 	l := byte(len(alphabet))
 	var sb strings.Builder
