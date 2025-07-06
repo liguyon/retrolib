@@ -1,6 +1,6 @@
 package pktcli
 
-// AccountGetQueuePosition reprensents a packet requesting the client's current position in the login queue.
+// AccountGetQueuePosition represents a packet requesting the client's current position in the login queue.
 // Type ID: Af
 // Wire format: Af
 type AccountGetQueuePosition struct {
