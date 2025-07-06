@@ -10,6 +10,10 @@ func CreatePacketByID(typeID string) retrolib.Packet {
 	switch typeID {
 	case "Af":
 		return &AccountGetQueuePosition{}
+	case "AX":
+		return &AccountSetServer{}
+	case "Ax":
+		return &AccountGetServersList{}
 	}
 	return nil
 }

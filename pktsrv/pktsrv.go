@@ -16,6 +16,16 @@ func CreatePacketByID(typeID string) retrolib.Packet {
 		return &AccountNickname{}
 	case "Af":
 		return &AccountNewQueue{}
+	case "AH":
+		return &AccountHosts{}
+	case "Al":
+		return &AccountLogin{}
+	case "AQ":
+		return &AccountSecretQuestion{}
+	case "Ax":
+		return &AccountServersList{}
+	case "AY":
+		return &AccountSelectServer{}
 	}
 	return nil
 }
