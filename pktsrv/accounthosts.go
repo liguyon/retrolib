@@ -6,14 +6,14 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/liguyon/retrolib/auth"
+	"github.com/liguyon/retrolib/login"
 )
 
 // AccountHosts represents a packet containing info about all game servers.
 // Type ID: AH
 // Wire format: AH[Srv0ID][Srv0State][Srv0Completion][Srv0CanLogIn]|[Srv1ID][Srv1State][Srv1Completion][Srv1CanLogIn]...
 type AccountHosts struct {
-	Servers []auth.Server
+	Servers []login.Server
 }
 
 func (a *AccountHosts) TypeID() string {
@@ -55,11 +55,11 @@ func (a *AccountHosts) Unmarshal(bytes []byte) error {
 				return errors.New("invalid data")
 			}
 		}
-		var srv auth.Server
+		var srv login.Server
 		if arr[3] == 1 {
-			srv = auth.Server{ID: arr[0], State: auth.ServerState(arr[1]), Completion: arr[2], CanLogIn: true}
+			srv = login.Server{ID: arr[0], State: login.ServerState(arr[1]), Completion: arr[2], CanLogIn: true}
 		} else {
-			srv = auth.Server{ID: arr[0], State: auth.ServerState(arr[1]), Completion: arr[2], CanLogIn: false}
+			srv = login.Server{ID: arr[0], State: login.ServerState(arr[1]), Completion: arr[2], CanLogIn: false}
 
 		}
 		a.Servers = append(a.Servers, srv)

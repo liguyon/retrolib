@@ -5,7 +5,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	"github.com/liguyon/retrolib/auth"
+	"github.com/liguyon/retrolib/login"
 )
 
 func TestAccountHosts_TypeID(t *testing.T) {
@@ -20,16 +20,16 @@ func TestAccountHosts_TypeID(t *testing.T) {
 func TestAccountHosts_Marshal(t *testing.T) {
 	tests := []struct {
 		name     string
-		srvs     []auth.Server
+		srvs     []login.Server
 		hasError bool
 		expected string
 	}{
 		{
 			name: "single server ok",
-			srvs: []auth.Server{
+			srvs: []login.Server{
 				{
 					ID:         0,
-					State:      auth.ServerOnline,
+					State:      login.ServerOnline,
 					Completion: 100,
 					CanLogIn:   true,
 				},
@@ -39,22 +39,22 @@ func TestAccountHosts_Marshal(t *testing.T) {
 		},
 		{
 			name: "multiple servers ok",
-			srvs: []auth.Server{
+			srvs: []login.Server{
 				{
 					ID:         0,
-					State:      auth.ServerOnline,
+					State:      login.ServerOnline,
 					Completion: 100,
 					CanLogIn:   true,
 				},
 				{
 					ID:         1,
-					State:      auth.ServerStarting,
+					State:      login.ServerStarting,
 					Completion: 0,
 					CanLogIn:   false,
 				},
 				{
 					ID:         2,
-					State:      auth.ServerOffline,
+					State:      login.ServerOffline,
 					Completion: 0,
 					CanLogIn:   false,
 				},
@@ -93,10 +93,10 @@ func TestAccountHosts_Unmarshal(t *testing.T) {
 		{
 			name:  "single server ok",
 			input: "AH0;1;100;1",
-			expected: AccountHosts{Servers: []auth.Server{
+			expected: AccountHosts{Servers: []login.Server{
 				{
 					ID:         0,
-					State:      auth.ServerOnline,
+					State:      login.ServerOnline,
 					Completion: 100,
 					CanLogIn:   true,
 				},
@@ -106,10 +106,10 @@ func TestAccountHosts_Unmarshal(t *testing.T) {
 		{
 			name:  "single server ok 1",
 			input: "AH0;1;100;0",
-			expected: AccountHosts{Servers: []auth.Server{
+			expected: AccountHosts{Servers: []login.Server{
 				{
 					ID:         0,
-					State:      auth.ServerOnline,
+					State:      login.ServerOnline,
 					Completion: 100,
 					CanLogIn:   false,
 				},
@@ -119,22 +119,22 @@ func TestAccountHosts_Unmarshal(t *testing.T) {
 		{
 			name:  "multiple servers ok",
 			input: "AH0;1;100;0|1;2;15;0|2;0;0;1",
-			expected: AccountHosts{Servers: []auth.Server{
+			expected: AccountHosts{Servers: []login.Server{
 				{
 					ID:         0,
-					State:      auth.ServerOnline,
+					State:      login.ServerOnline,
 					Completion: 100,
 					CanLogIn:   false,
 				},
 				{
 					ID:         1,
-					State:      auth.ServerStarting,
+					State:      login.ServerStarting,
 					Completion: 15,
 					CanLogIn:   false,
 				},
 				{
 					ID:         2,
-					State:      auth.ServerOffline,
+					State:      login.ServerOffline,
 					Completion: 0,
 					CanLogIn:   true,
 				},

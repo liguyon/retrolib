@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/liguyon/retrolib/auth"
+	"github.com/liguyon/retrolib/login"
 )
 
 // AccountLogin represents a packet containing login status information.
@@ -17,7 +17,7 @@ type AccountLogin struct {
 	// IsGM indicates whether the account has Game Master access rights
 	IsGM bool
 	// ErrID is the identifier for the error that indicates why login failed
-	ErrID auth.LoginErrorID
+	ErrID login.LoginErrorID
 	// Extra is the extra information sent when the client gets kicked
 	Extra string
 }
@@ -50,7 +50,7 @@ func (p *AccountLogin) Unmarshal(bytes []byte) error {
 			p.IsGM = true
 		}
 	case 'E':
-		p.ErrID = auth.LoginErrorID(pl[1])
+		p.ErrID = login.LoginErrorID(pl[1])
 		if len(pl) > 2 {
 			p.Extra = pl[2:]
 		}

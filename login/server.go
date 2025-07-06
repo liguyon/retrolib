@@ -1,4 +1,4 @@
-package auth
+package login
 
 type ServerState int
 

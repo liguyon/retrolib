@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/liguyon/retrolib/auth"
+	"github.com/liguyon/retrolib/login"
 )
 
 // AccountServersList represents a packet containing the list of servers used by the account.
@@ -15,7 +15,7 @@ import (
 type AccountServersList struct {
 	//Success bool // always Ok
 	RemainingSub int64 // Remaining subscription time in milliseconds
-	Servers      []auth.ServerWithCharacters
+	Servers      []login.ServerWithCharacters
 }
 
 func (a *AccountServersList) TypeID() string {
@@ -62,7 +62,7 @@ func (a *AccountServersList) Unmarshal(bytes []byte) error {
 		if err != nil {
 			return errors.New("invalid data")
 		}
-		a.Servers = append(a.Servers, auth.ServerWithCharacters{id, n})
+		a.Servers = append(a.Servers, login.ServerWithCharacters{id, n})
 	}
 	return nil
 }

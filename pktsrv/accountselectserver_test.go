@@ -8,50 +8,45 @@ import (
 	"github.com/liguyon/retrolib/login"
 )
 
-func TestAccountServersList_TypeID(t *testing.T) {
-	h := AccountServersList{}
-	expected := "Ax"
+func TestAccountSelectServer_TypeID(t *testing.T) {
+	h := AccountSelectServer{}
+	expected := "AY"
 	result := h.TypeID()
 	if result != expected {
 		t.Errorf("expected %s, got %s", expected, result)
 	}
 }
 
-func TestAccountServersList_Marshal(t *testing.T) {
+func TestAccountSelectServer_Marshal(t *testing.T) {
 	tests := []struct {
 		name     string
-		subTime  int64
-		scs      []login.ServerWithCharacters
+		success  bool
+		addr     string
+		ticket   int
+		errID    login.SelectServerErrorID
 		hasError bool
 		expected string
 	}{
 		{
-			name:    "ok",
-			subTime: 6000000,
-			scs: []login.ServerWithCharacters{
-				{
-					ServerID:   0,
-					NCharacter: 3,
-				},
-				{
-					ServerID:   1,
-					NCharacter: 2,
-				},
-			},
-			expected: "AxK6000000|0,3|1,2",
+			name:     "selection success ok",
+			success:  true,
+			addr:     "localhost:5555",
+			ticket:   12345,
+			expected: "AYKlocalhost:5555;12345",
 			hasError: false,
 		},
 		{
-			name:     "no server with character",
-			subTime:  6000000,
-			expected: "AxK6000000",
+			name:     "selection error ok",
+			success:  false,
+			errID:    login.SelectServerFull,
+			expected: "AYEF",
 			hasError: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			a := AccountServersList{RemainingSub: tt.subTime, Servers: tt.scs}
+			a := AccountSelectServer{Success: tt.success, Addr: tt.addr, Ticket: tt.ticket, ErrID: tt.errID}
 			result, err := a.Marshal()
 			if tt.hasError && err == nil {
 				t.Error("expected error but got none")
@@ -68,67 +63,61 @@ func TestAccountServersList_Marshal(t *testing.T) {
 	}
 }
 
-func TestAccountServersList_Unmarshal(t *testing.T) {
+func TestAccountSelectServer_Unmarshal(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
-		expected AccountServersList
+		expected AccountSelectServer
 		hasError bool
 	}{
 		{
-			name:     "no server ok",
-			input:    "AxK60000000000",
-			expected: AccountServersList{RemainingSub: 60_000_000_000},
+			name:  "selection success ok",
+			input: "AYKlocalhost:5555;12345",
+			expected: AccountSelectServer{
+				Success: true,
+				Addr:    "localhost:5555",
+				Ticket:  12345,
+			},
 			hasError: false,
 		},
 		{
-			name:  "ok",
-			input: "AxK60000000000|0,3|1,2",
-			expected: AccountServersList{
-				Servers: []login.ServerWithCharacters{
-					{
-						ServerID:   0,
-						NCharacter: 3,
-					},
-					{
-						ServerID:   1,
-						NCharacter: 2,
-					},
-				},
-				RemainingSub: 60_000_000_000,
+			name:  "selection error ok",
+			input: "AYEF",
+			expected: AccountSelectServer{
+				ErrID: login.SelectServerFull,
 			},
 			hasError: false,
 		},
 		{
 			name:     "invalid data",
-			input:    "AxKa60",
+			input:    "AYT",
 			hasError: true,
 		},
 		{
-			name:     "invalid data 1",
-			input:    "AxK|60",
+			name:     "invalid data",
+			input:    "AYKlocalhost:5555",
 			hasError: true,
 		},
 		{
-			name:     "invalid data 2",
-			input:    "AxK60|",
+			name:     "invalid data",
+			input:    "AY",
 			hasError: true,
 		},
 		{
-			name:     "invalid data 3",
-			input:    "AxK60|1",
+			name:     "invalid data",
+			input:    "AYKlocalhost:5555;",
 			hasError: true,
 		},
 		{
-			name:     "invalid data 4",
-			input:    "AxK60|1,",
+			name:     "invalid data",
+			input:    "AYKlocalhost:5555;a",
 			hasError: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var a AccountServersList
+			var a AccountSelectServer
 			err := a.Unmarshal([]byte(tt.input))
 
 			if tt.hasError && err == nil {

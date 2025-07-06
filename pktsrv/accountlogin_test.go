@@ -3,7 +3,7 @@ package pktsrv
 import (
 	"testing"
 
-	"github.com/liguyon/retrolib/auth"
+	"github.com/liguyon/retrolib/login"
 
 	"github.com/google/go-cmp/cmp"
 )
@@ -22,7 +22,7 @@ func TestAccountLogin_Marshal(t *testing.T) {
 		name     string
 		success  bool
 		isGM     bool
-		errID    auth.LoginErrorID
+		errID    login.LoginErrorID
 		extra    string
 		hasError bool
 		expected string
@@ -44,14 +44,14 @@ func TestAccountLogin_Marshal(t *testing.T) {
 		{
 			name:     "login error any",
 			success:  false,
-			errID:    auth.ErrAccessDenied,
+			errID:    login.LoginAccessDenied,
 			expected: "AlEf",
 			hasError: false,
 		},
 		{
 			name:     "login error extra",
 			success:  false,
-			errID:    auth.ErrKicked,
+			errID:    login.LoginKicked,
 			extra:    "whoknowswhy",
 			expected: "AlEkwhoknowswhy",
 			hasError: false,
@@ -109,13 +109,13 @@ func TestAccountLogin_Unmarshal(t *testing.T) {
 		{
 			name:     "login error access denied",
 			input:    "AlEf",
-			expected: AccountLogin{ErrID: auth.ErrAccessDenied},
+			expected: AccountLogin{ErrID: login.LoginAccessDenied},
 			hasError: false,
 		},
 		{
 			name:     "login error kicked extra",
 			input:    "AlEkBaldloose",
-			expected: AccountLogin{ErrID: auth.ErrKicked, Extra: "Baldloose"},
+			expected: AccountLogin{ErrID: login.LoginKicked, Extra: "Baldloose"},
 			hasError: false,
 		},
 	}
