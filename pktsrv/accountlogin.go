@@ -9,6 +9,8 @@ import (
 )
 
 // AccountLogin represents a packet containing login status information.
+// Type ID: Al
+// Wire format: Al[Success:K][IsGM] or Al[Success:E][ErrID][Extra]
 type AccountLogin struct {
 	// Success indicates whether the login process succeeded
 	Success bool

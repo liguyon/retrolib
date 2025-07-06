@@ -9,6 +9,9 @@ import (
 	"github.com/liguyon/retrolib/auth"
 )
 
+// AccountServersList represents a packet containing the list of servers used by the account.
+// Type ID: Ax
+// Wire format: AxK[RemainingSub](|[Server0ID],[Server0NChars]...)
 type AccountServersList struct {
 	//Success bool // always Ok
 	RemainingSub int64 // Remaining subscription time in milliseconds

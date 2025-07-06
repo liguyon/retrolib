@@ -9,6 +9,9 @@ import (
 	"github.com/liguyon/retrolib/auth"
 )
 
+// AccountHosts represents a packet containing info about all game servers.
+// Type ID: AH
+// Wire format: AH[Srv0ID][Srv0State][Srv0Completion][Srv0CanLogIn]|[Srv1ID][Srv1State][Srv1Completion][Srv1CanLogIn]...
 type AccountHosts struct {
 	Servers []auth.Server
 }

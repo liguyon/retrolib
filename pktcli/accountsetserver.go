@@ -6,6 +6,9 @@ import (
 	"strings"
 )
 
+// AccountSetServer represents a packet containing the identifier for the server the client selected.
+// Type ID: AX
+// Wire Format: AX[ServerID]
 type AccountSetServer struct {
 	ServerID int
 }

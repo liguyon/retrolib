@@ -1,6 +1,8 @@
 package pktcli
 
 // AccountGetServersList represents a packet requesting the list of servers the account has characters on.
+// Type ID: Ax
+// Wire format: Ax
 type AccountGetServersList struct{}
 
 func (a *AccountGetServersList) TypeID() string {

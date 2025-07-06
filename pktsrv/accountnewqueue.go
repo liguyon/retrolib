@@ -8,6 +8,8 @@ import (
 )
 
 // AccountNewQueue represents a packet containing login queue status information.
+// Type ID: Af
+// Wire format: Af[Position]|[NSubs]|[NNonSubs]|[IsSub]|[QueueID]
 type AccountNewQueue struct {
 	// Position is the position of the client in the login queue
 	Position int
