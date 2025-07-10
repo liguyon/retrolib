@@ -16,6 +16,7 @@ const (
 	ServerEvent
 )
 
+// Server represents a Retro game server or host (e.g. Jiva, Eratz, ...).
 type Server struct {
 	ID         int
 	State      ServerState
