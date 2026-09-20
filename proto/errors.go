@@ -19,4 +19,8 @@ var (
 
 	// ErrMalformedPayload is returned when a message payload is malformed.
 	ErrMalformedPayload = errors.New("malformed payload")
+
+	// ErrMalformedKey is return when a protocol key (used in the obfuscation layer)
+	// is malformed.
+	ErrMalformedKey = errors.New("malformed key")
 )

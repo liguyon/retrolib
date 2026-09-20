@@ -5,10 +5,10 @@
 // The two directions of traffic are handled as separate and composable stages.
 //
 // Inbound traffic generally goes through the following pipeline:
-// raw []byte -> TrimDelim -> DecryptMessage -> ParseOpcode -> DeserializeMessage -> Message
+// raw []byte (read from wire) -> TrimDelim -> Decrypt-> ParseOpcode -> Deserialize -> Message
 //
 // Outbound traffic:
-// Message -> SerializeMessage -> EncryptMessage -> AppendDelim -> []byte
+// Message (concrete, typed) -> Serialize -> Encrypt-> AppendDelim -> raw []byte
 package proto
 
 import (
@@ -148,7 +148,7 @@ func ParseMessage(msg []byte, dir Direction) (op Opcode, payload string, err err
 			return Opcode(msg[:n]), string(msg[n:]), nil
 		}
 	}
-	return "", "", fmt.Errorf("%w: %q", ErrUnknownOpcode, msg)
+	return "", "", ErrUnknownOpcode
 }
 
 // ParseClientMessage is the same as calling ParseMessage with dir=ClientToServer.

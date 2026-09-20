@@ -47,56 +47,6 @@ func TestAppendMessageDelim(t *testing.T) {
 	}
 }
 
-/*
-func TestParseMessage(t *testing.T) {
-	clientRegistry["AX"] = nil
-	maxClientOpcodeLen = 2
-	serverRegistry["Ax"] = nil
-	maxServerOpcodeLen = 2
-
-	tests := []struct {
-		name            string
-		msg             []byte
-		dir             Direction
-		expectedOp      Opcode
-		expectedPayload string
-		expectedErr     error
-	}{
-		{"cli", []byte("AX601"), ClientToServer, "AX", "601", nil},
-		{"svr", []byte("Ax0|601,1"), ServerToClient, "Ax", "0|601,1", nil},
-		{"unknown", []byte("Af"), ClientToServer, "", "", ErrUnknownOpcode},
-		{"empty", []byte{}, ServerToClient, "", "", ErrInvalidOpcode},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			op, pl, err := ParseMessage(tt.msg, tt.dir)
-
-			// check err
-			if err != nil {
-				if tt.expectedErr == nil {
-					t.Fatalf("want no error; got %v", err)
-				}
-				if !errors.Is(err, tt.expectedErr) {
-					t.Fatalf("want err %v; got %v",
-						tt.expectedErr, err)
-				}
-			}
-
-			// check opcode
-			if op != tt.expectedOp {
-				t.Errorf("want opcode %q; got %q", tt.expectedOp, op)
-			}
-
-			// check payload
-			if pl != tt.expectedPayload {
-				t.Errorf("want payload %q; got %q", tt.expectedPayload, pl)
-			}
-		})
-	}
-}
-*/
-
 func TestRegisterType(t *testing.T) {
 	clientRegistry = map[Opcode]func() Deserializer{}
 	maxClientOpcodeLen = 0
