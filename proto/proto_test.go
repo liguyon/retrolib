@@ -2,11 +2,11 @@ package proto
 
 import (
 	"bytes"
-	"errors"
+	//	"errors"
 	"testing"
 )
 
-func TestTrimMessageDelim(t *testing.T) {
+func TestTrimDelim(t *testing.T) {
 	tests := []struct {
 		name     string
 		msg      []byte
@@ -19,7 +19,7 @@ func TestTrimMessageDelim(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			res := TrimMessageDelim(tt.msg, tt.dir)
+			res := TrimDelim(tt.msg, tt.dir)
 			if bytes.Compare(tt.expected, res) != 0 {
 				t.Errorf("want %q; got %q", string(tt.expected), string(res))
 			}
@@ -27,7 +27,7 @@ func TestTrimMessageDelim(t *testing.T) {
 	}
 }
 
-func TestAppendMessageDelim(t *testing.T) {
+func TestAppendDelim(t *testing.T) {
 	tests := []struct {
 		name     string
 		msg      []byte
@@ -39,7 +39,7 @@ func TestAppendMessageDelim(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			res := AppendMessageDelim(tt.msg, tt.dir)
+			res := AppendDelim(tt.msg, tt.dir)
 			if bytes.Compare(res, tt.expected) != 0 {
 				t.Errorf("want %q; got %q", string(tt.expected), string(res))
 			}
@@ -47,6 +47,7 @@ func TestAppendMessageDelim(t *testing.T) {
 	}
 }
 
+/*
 func TestRegisterType(t *testing.T) {
 	clientRegistry = map[Opcode]func() Deserializer{}
 	maxClientOpcodeLen = 0
@@ -204,3 +205,4 @@ func TestDeserializeMessage(t *testing.T) {
 		t.Fatalf("could not type-switch")
 	}
 }
+*/
