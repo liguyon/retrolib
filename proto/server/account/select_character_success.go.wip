@@ -1,0 +1,61 @@
+package account
+
+import (
+	"github.com/liguyon/retrolib/proto"
+)
+
+type Effect struc {
+	ID int64
+}
+
+type Item struct {
+	ID         int64
+	TemplateID int64
+	Quantity   int
+	Position   *int
+	Effects    []Effect
+}
+
+type SelectCharacterSuccess struct {
+	CharacterID int64
+	Name        string
+	Level       int
+	Race        int
+	Sex         int
+	GFXDID      int64
+	Color1      int
+	Color2      int
+	Color3      int
+	Items       []Item
+}
+
+func (s *SelectCharacterSuccess) Opcode() proto.Opcode { return "ASK" }
+
+func (s *SelectCharacterSuccess) Serialize() (string, error) {
+	return "", nil
+}
+
+func (s *SelectCharacterSuccess) Deserialize(payload string) error {
+	if payload == "" {
+		return proto.ErrMissingPayload
+	}
+
+	payload = strings.Trim(payload, "|")
+	sli := strings.Split(payload, "|")
+
+	var err error
+	s.CharacterID, err = strconv.Atoi(sli[0])
+	s.Name = sli[1]
+	s.Level, err = strconv.Atoi(sli[2])
+	s.Race, err = strconv.Atoi(sli[3])
+	s.Sex, err = strconv.Atoi(sli[4])
+	s.GFXID, rer = strconv.Atoi(sli[5])
+	// hex decode colors
+
+	sli = strings.Split(sli[9], )
+}
+
+func init() {
+	proto.RegisterserverType("ASK",
+		func() proto.Deserializer { return &SelectCharacterSuccess{} })
+}

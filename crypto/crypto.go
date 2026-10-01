@@ -1,10 +1,12 @@
-package proto
+package crypto
 
 import (
 	"encoding/hex"
 	"errors"
 	"fmt"
 )
+
+var ErrMalformedKey = errors.New("malformed key")
 
 const hexDigits = "0123456789ABCDEF"
 
@@ -23,25 +25,22 @@ func (k Key) Encode() (string, error) {
 	}
 
 	out := make([]byte, 1+hex.EncodedLen(len(k.Material)))
-
-	id, err := HexDigit(k.ID)
-	if err != nil {
+	if k.ID > 0x0f {
 		return "", fmt.Errorf("%w: invalid id", ErrMalformedKey)
 	}
-	out[0] = id
-
+	out[0] = hexDigits[k.ID]
 	_ = hex.Encode(out[1:], k.Material)
 	return string(out), nil
 }
 
-// Decode parses a key that's been encoded using the encoding method implemented by Key.Encode.
+// Decode parses a key encoded with the encoding method implemented by Key.Encode.
 func DecodeKey(raw string) (Key, error) {
 	if len(raw)%2 == 0 {
 		return Key{}, ErrMalformedKey
 	}
 	b := []byte(raw)
 
-	id, err := HexNibble(b[0])
+	id, err := hexNibble(b[0])
 	if err != nil {
 		return Key{}, fmt.Errorf("%w: invalid id", ErrMalformedKey)
 	}
@@ -57,18 +56,14 @@ func DecodeKey(raw string) (Key, error) {
 	return Key{ID: id, Material: material}, nil
 }
 
-// EncryptMessage implements Retro's symmetric cipher used to obfuscate client<->server traffic.
-// It encodes key ID in the first byte of the output, a checksum of the payload in the second,
-// and hex encodes the ciphertext after.
-// The cipher is a XOR stream, it XORs each byte of the payload with a byte from key offset by
-// a counter.
-func EncryptMessage(plaintext []byte, key Key) ([]byte, error) {
+// Encrypt implements Retro's cipher used to encrypt client-server traffic and MapData.
+func Encrypt(plaintext []byte, key Key) ([]byte, error) {
 	if len(key.Material) == 0 {
-		return nil, errors.New("empty key")
+		return nil, fmt.Errorf("%w: empty", ErrMalformedKey)
 	}
 
 	sum := checksum(plaintext)
-	cipherBytes := xorStream(plaintext, key.Material, int(sum)*2)
+	cipherBytes := xorStream(escape(plaintext), key.Material, int(sum)*2)
 
 	out := make([]byte, 2+hex.EncodedLen(len(cipherBytes)))
 	out[0] = hexDigits[key.ID]
@@ -77,25 +72,25 @@ func EncryptMessage(plaintext []byte, key Key) ([]byte, error) {
 	return out, nil
 }
 
-// DecryptMessage is used to decrypt a message encrypted with the algorithm implemented by
-// "EncryptMessage".
-func DecryptMessage(message []byte, key Key) ([]byte, error) {
+// Decrypt is used to decrypt data that's been encrypted with the algorithm implemented by
+// "Encrypt".
+func Decrypt(message []byte, key Key) ([]byte, error) {
 	if len(message) < 2 {
 		return nil, errors.New("message too short")
 	}
 	if len(key.Material) == 0 {
-		return nil, errors.New("empty key")
+		return nil, fmt.Errorf("%w: empty", ErrMalformedKey)
 	}
 
-	id, err := HexNibble(message[0])
+	id, err := hexNibble(message[0])
 	if err != nil {
-		return nil, fmt.Errorf("invalid key id: %v", err)
+		return nil, fmt.Errorf("%w: invalid id", ErrMalformedKey)
 	}
 	if id != key.ID {
 		return nil, errors.New("key id mismatch")
 	}
 
-	sum, err := HexNibble(message[1])
+	sum, err := hexNibble(message[1])
 	if err != nil {
 		return nil, fmt.Errorf("invalid checksum: %v", err)
 	}
@@ -103,15 +98,19 @@ func DecryptMessage(message []byte, key Key) ([]byte, error) {
 	cipherBytes := make([]byte, hex.DecodedLen(len(message[2:])))
 	_, err = hex.Decode(cipherBytes, message[2:])
 	if err != nil {
-		return nil, fmt.Errorf("invalid ciphertext: %w", err)
+		return nil, fmt.Errorf("invalid ciphertext: %v", err)
 	}
 
 	plainBytes := xorStream(cipherBytes, key.Material, int(sum)*2)
+	unescaped, err := unescape(plainBytes)
+	if err != nil {
+		return nil, fmt.Errorf("invalid ciphertext: %v", err)
+	}
 
-	if checksum(plainBytes) != sum {
+	if checksum(unescaped) != sum {
 		return nil, errors.New("checksum mismatch")
 	}
-	return plainBytes, nil
+	return unescaped, nil
 }
 
 func checksum(data []byte) byte {
@@ -128,4 +127,50 @@ func xorStream(data, key []byte, offset int) []byte {
 		out[i] = b ^ key[(i+offset)%len(key)]
 	}
 	return out
+}
+
+func hexNibble(c byte) (byte, error) {
+	switch {
+	case c >= '0' && c <= '9':
+		return c - '0', nil
+	case c >= 'A' && c <= 'F':
+		return c - 'A' + 10, nil
+	case c >= 'a' && c <= 'f':
+		return c - 'a' + 10, nil
+	default:
+		return 0, fmt.Errorf("not a hex digit: %q", c)
+	}
+}
+
+func escape(s []byte) []byte {
+	out := make([]byte, 0, len(s))
+	for _, c := range s {
+		if c < 32 || c > 127 || c == '%' || c == '+' {
+			out = append(out, '%', hexDigits[c>>4], hexDigits[c&0x0F])
+		} else {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
+func unescape(s []byte) ([]byte, error) {
+	out := make([]byte, 0, len(s))
+	for i := 0; i < len(s); i++ {
+		if s[i] == '%' && i+2 < len(s) {
+			hi, err := hexNibble(s[i+1])
+			if err != nil {
+				return nil, err
+			}
+			lo, err := hexNibble(s[i+2])
+			if err != nil {
+				return nil, err
+			}
+			out = append(out, hi<<4|lo)
+			i += 2
+			continue
+		}
+		out = append(out, s[i])
+	}
+	return out, nil
 }

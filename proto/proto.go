@@ -1,6 +1,6 @@
 // Package proto implements the wire format for Retro's network protocol.
-// Each frame contains a single delimited message, optionally obfuscated (see crypto.go),
-// carrying an opcode-prefixed payload.
+// Each frame contains a single delimited message, optionally obfuscated
+// (see retrolib/crypto), carrying an opcode-prefixed payload.
 //
 // The two directions of traffic are handled as separate and composable stages.
 //

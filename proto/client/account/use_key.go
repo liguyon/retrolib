@@ -31,7 +31,7 @@ func (u *UseKey) Deserialize(payload string) error {
 
 	n, err := proto.HexNibble(payload[0])
 	if err != nil {
-		return fmt.Errorf("%w: %v", proto.ErrMalformedKey, err)
+		return proto.ErrMalformedPayload
 	}
 	u.KeyID = n
 	return nil

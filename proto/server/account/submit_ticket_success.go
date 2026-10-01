@@ -30,7 +30,7 @@ func (s *SubmitTicketSuccess) Deserialize(payload string) error {
 
 	n, err := proto.HexNibble(payload[0])
 	if err != nil {
-		return fmt.Errorf("%w: %v", proto.ErrMalformedKey, err)
+		return proto.ErrMalformedPayload
 	}
 	s.KeyID = n
 
