@@ -22,6 +22,7 @@ func (s *ServerMessage) Deserialize(payload string) error {
 		return proto.ErrMissingPayload
 	}
 	s.Message = payload
+	return nil
 }
 
 func init() {
