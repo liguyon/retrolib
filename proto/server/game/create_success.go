@@ -22,7 +22,7 @@ func (c *CreateSuccess) Deserialize(payload string) error {
 	if payload == "" {
 		return proto.ErrMissingPayload
 	}
-	sli := strings.Split(payload, "|")
+	sli := strings.Split(payload[1:], "|")
 	t, err := strconv.Atoi(sli[0])
 	if err != nil {
 		return proto.ErrMalformedPayload
