@@ -3,6 +3,7 @@ package proto
 import (
 	"bytes"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -101,6 +102,9 @@ func (f *fakeHello) Opcode() Opcode { return "hello" }
 func (f *fakeHello) Deserialize(payload string) error {
 	if payload == "" {
 		return ErrMissingPayload
+	}
+	if strings.TrimSpace(payload) != payload {
+		return errors.New("space marines")
 	}
 	f.Rest = payload
 	return nil
@@ -220,8 +224,10 @@ func TestDeserializeMessage(t *testing.T) {
 			nil, ErrUnknownOpcode},
 		{"empty op", "   ", "", ClientToServer,
 			nil, ErrInvalidOpcode},
-		{"deserialize error propagates", "hello", "", ServerToClient,
+		{"deserialize error propagates missing", "hello", "", ServerToClient,
 			nil, ErrMissingPayload},
+		{"deserialize error propagates malformed", "hello", " lo", ServerToClient,
+			nil, ErrMalformedPayload},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

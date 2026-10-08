@@ -240,7 +240,7 @@ func (r *TypeRegistry) DeserializeMessage(
 
 	err := msg.Deserialize(payload)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %w", ErrMalformedPayload, err)
 	}
 	return msg, nil
 }
