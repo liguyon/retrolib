@@ -7,6 +7,8 @@ import (
 )
 
 type CraftError struct {
+	proto.ServerSide
+
 	Reason byte
 }
 
@@ -21,13 +23,12 @@ func (c *CraftError) Deserialize(payload string) error {
 		return proto.ErrMissingPayload
 	}
 	if len(payload) != 1 {
-		return proto.ErrMalformedPayload
+		return fmt.Errorf("expected a char: %q", payload)
 	}
 	c.Reason = payload[0]
 	return nil
 }
 
 func init() {
-	proto.RegisterServerType("EcE",
-		func() proto.Deserializer { return &CraftError{} })
+	proto.Register(func() proto.Deserializer { return &CraftError{} })
 }

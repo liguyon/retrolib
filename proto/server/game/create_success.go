@@ -9,6 +9,8 @@ import (
 )
 
 type CreateSuccess struct {
+	proto.ServerSide
+
 	Type int
 }
 
@@ -25,13 +27,12 @@ func (c *CreateSuccess) Deserialize(payload string) error {
 	sli := strings.Split(payload[1:], "|")
 	t, err := strconv.Atoi(sli[0])
 	if err != nil {
-		return proto.ErrMalformedPayload
+		return fmt.Errorf("invalid number: %q", sli[0])
 	}
 	c.Type = t
 	return nil
 }
 
 func init() {
-	proto.RegisterServerType("GCK",
-		func() proto.Deserializer { return &CreateSuccess{} })
+	proto.Register(func() proto.Deserializer { return &CreateSuccess{} })
 }

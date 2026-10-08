@@ -7,6 +7,8 @@ import (
 )
 
 type SubmitTicketSuccess struct {
+	proto.ServerSide
+
 	KeyID byte
 }
 
@@ -24,13 +26,14 @@ func (s *SubmitTicketSuccess) Deserialize(payload string) error {
 	if payload == "" {
 		return proto.ErrMissingPayload
 	}
+
 	if len(payload) != 1 {
-		return proto.ErrMalformedPayload
+		return fmt.Errorf("not a byte: %q", payload)
 	}
 
 	n, err := proto.HexNibble(payload[0])
 	if err != nil {
-		return proto.ErrMalformedPayload
+		return fmt.Errorf("%w: %c", err, payload[0])
 	}
 	s.KeyID = n
 
@@ -38,6 +41,5 @@ func (s *SubmitTicketSuccess) Deserialize(payload string) error {
 }
 
 func init() {
-	proto.RegisterServerType("ATK",
-		func() proto.Deserializer { return &SubmitTicketSuccess{} })
+	proto.Register(func() proto.Deserializer { return &SubmitTicketSuccess{} })
 }

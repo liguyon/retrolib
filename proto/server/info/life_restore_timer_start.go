@@ -8,6 +8,8 @@ import (
 )
 
 type LifeRestoreTimerStart struct {
+	proto.ServerSide
+
 	Interval int
 }
 
@@ -23,13 +25,12 @@ func (l *LifeRestoreTimerStart) Deserialize(payload string) error {
 	}
 	n, err := strconv.Atoi(payload)
 	if err != nil {
-		return proto.ErrMalformedPayload
+		return fmt.Errorf("invalid number: %q", payload)
 	}
 	l.Interval = n
 	return nil
 }
 
 func init() {
-	proto.RegisterServerType("ILS",
-		func() proto.Deserializer { return &LifeRestoreTimerStart{} })
+	proto.Register(func() proto.Deserializer { return &LifeRestoreTimerStart{} })
 }

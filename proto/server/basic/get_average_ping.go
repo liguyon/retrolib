@@ -5,6 +5,7 @@ import (
 )
 
 type GetAveragePing struct {
+	proto.ServerSide
 }
 
 func (g *GetAveragePing) Opcode() proto.Opcode { return "Bp" }
@@ -18,6 +19,5 @@ func (g *GetAveragePing) Deserialize(payload string) error {
 }
 
 func init() {
-	proto.RegisterServerType("Bp",
-		func() proto.Deserializer { return &GetAveragePing{} })
+	proto.Register(func() proto.Deserializer { return &GetAveragePing{} })
 }

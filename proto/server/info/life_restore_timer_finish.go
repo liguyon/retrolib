@@ -8,6 +8,8 @@ import (
 )
 
 type LifeRestoreTimerFinish struct {
+	proto.ServerSide
+
 	TotalHealed int
 }
 
@@ -23,13 +25,12 @@ func (l *LifeRestoreTimerFinish) Deserialize(payload string) error {
 	}
 	n, err := strconv.Atoi(payload)
 	if err != nil {
-		return proto.ErrMalformedPayload
+		return fmt.Errorf("invalid number: %q", payload)
 	}
 	l.TotalHealed = n
 	return nil
 }
 
 func init() {
-	proto.RegisterServerType("ILF",
-		func() proto.Deserializer { return &LifeRestoreTimerFinish{} })
+	proto.Register(func() proto.Deserializer { return &LifeRestoreTimerFinish{} })
 }

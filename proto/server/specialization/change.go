@@ -8,6 +8,8 @@ import (
 )
 
 type Change struct {
+	proto.ServerSide
+
 	SpecializationID int
 }
 
@@ -23,13 +25,12 @@ func (c *Change) Deserialize(payload string) error {
 	}
 	id, err := strconv.Atoi(payload)
 	if err != nil {
-		return proto.ErrMalformedPayload
+		return fmt.Errorf("invalid number: %q", payload)
 	}
 	c.SpecializationID = id
 	return nil
 }
 
 func init() {
-	proto.RegisterServerType("ZC",
-		func() proto.Deserializer { return &Change{} })
+	proto.Register(func() proto.Deserializer { return &Change{} })
 }

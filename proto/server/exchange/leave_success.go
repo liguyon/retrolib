@@ -9,6 +9,8 @@ import (
 // It seems that 'a' is sent when the exchange is ended due to both parties
 // accepting the exchange instead of cancelling it.
 type LeaveSuccess struct {
+	proto.ServerSide
+
 	OnAccept bool
 }
 
@@ -29,6 +31,5 @@ func (l *LeaveSuccess) Deserialize(payload string) error {
 }
 
 func init() {
-	proto.RegisterServerType("EVK",
-		func() proto.Deserializer { return &LeaveSuccess{} })
+	proto.Register(func() proto.Deserializer { return &LeaveSuccess{} })
 }

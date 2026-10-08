@@ -8,6 +8,8 @@ import (
 )
 
 type Experience struct {
+	proto.ServerSide
+
 	Percent int
 }
 
@@ -24,12 +26,11 @@ func (e *Experience) Deserialize(payload string) error {
 	var err error
 	e.Percent, err = strconv.Atoi(payload)
 	if err != nil {
-		return proto.ErrMalformedPayload
+		return fmt.Errorf("invalid number: %q", payload)
 	}
 	return nil
 }
 
 func init() {
-	proto.RegisterServerType("Rx",
-		func() proto.Deserializer { return &Experience{} })
+	proto.Register(func() proto.Deserializer { return &Experience{} })
 }

@@ -8,6 +8,8 @@ import (
 )
 
 type ReferenceTime struct {
+	proto.ServerSide
+
 	Timestamp int64
 }
 
@@ -23,13 +25,12 @@ func (r *ReferenceTime) Deserialize(payload string) error {
 	}
 	t, err := strconv.ParseInt(payload, 10, 64)
 	if err != nil {
-		return proto.ErrMalformedPayload
+		return fmt.Errorf("invalid number: %q", payload)
 	}
 	r.Timestamp = t
 	return nil
 }
 
 func init() {
-	proto.RegisterServerType("BT",
-		func() proto.Deserializer { return &ReferenceTime{} })
+	proto.Register(func() proto.Deserializer { return &ReferenceTime{} })
 }

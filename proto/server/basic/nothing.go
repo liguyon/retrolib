@@ -5,6 +5,7 @@ import (
 )
 
 type Nothing struct {
+	proto.ServerSide
 }
 
 func (n *Nothing) Opcode() proto.Opcode { return "BN" }
@@ -18,6 +19,5 @@ func (n *Nothing) Deserialize(payload string) error {
 }
 
 func init() {
-	proto.RegisterServerType("BN",
-		func() proto.Deserializer { return &Nothing{} })
+	proto.Register(func() proto.Deserializer { return &Nothing{} })
 }

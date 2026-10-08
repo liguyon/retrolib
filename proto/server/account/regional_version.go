@@ -8,6 +8,8 @@ import (
 )
 
 type RegionalVersion struct {
+	proto.ServerSide
+
 	Version int
 }
 
@@ -24,7 +26,7 @@ func (r *RegionalVersion) Deserialize(payload string) error {
 
 	v, err := strconv.Atoi(payload)
 	if err != nil {
-		return fmt.Errorf("%w: %w", proto.ErrMalformedPayload, err)
+		return fmt.Errorf("invalid number: %q", payload)
 	}
 
 	r.Version = v
@@ -32,6 +34,5 @@ func (r *RegionalVersion) Deserialize(payload string) error {
 }
 
 func init() {
-	proto.RegisterServerType("AV",
-		func() proto.Deserializer { return &RegionalVersion{} })
+	proto.Register(func() proto.Deserializer { return &RegionalVersion{} })
 }

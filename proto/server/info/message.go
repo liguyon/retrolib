@@ -7,31 +7,42 @@ import (
 	"github.com/liguyon/retrolib/proto"
 )
 
-type InfoMessage struct {
+type MessageDTO struct {
 	ID   string
 	Args string
 }
 
-func (i InfoMessage) Serialize() string {
-	if i.Args == "" {
-		return i.ID
+func (m MessageDTO) Serialize() string {
+	if m.Args == "" {
+		return m.ID
 	}
-	return fmt.Sprintf("%s;%s", i.ID, i.Args)
+	return fmt.Sprintf("%s;%s", m.ID, m.Args)
+}
+
+func parseMessageDTO(s string) MessageDTO {
+	sli := strings.Split(s, ";")
+	msg := MessageDTO{ID: sli[0]}
+	if len(sli) == 2 {
+		msg.Args = sli[1]
+	}
+	return msg
 }
 
 type Message struct {
+	proto.ServerSide
+
 	Channel  byte
-	Messages []InfoMessage
+	Messages []MessageDTO
 }
 
 func (m *Message) Opcode() proto.Opcode { return "Im" }
 
 func (m *Message) Serialize() (string, error) {
-	var msgs []string
-	for _, entry := range m.Messages {
-		msgs = append(msgs, entry.Serialize())
+	var ser []string
+	for _, v := range m.Messages {
+		ser = append(ser, v.Serialize())
 	}
-	return fmt.Sprintf("%c%s", m.Channel, strings.Join(msgs, "|")), nil
+	return fmt.Sprintf("%c%s", m.Channel, strings.Join(ser, "|")), nil
 }
 
 func (m *Message) Deserialize(payload string) error {
@@ -41,19 +52,12 @@ func (m *Message) Deserialize(payload string) error {
 
 	m.Channel = payload[0]
 
-	sli := strings.Split(payload[1:], "|")
-	for _, entry := range sli {
-		toks := strings.Split(entry, ";")
-		msg := InfoMessage{ID: toks[0]}
-		if len(toks) == 2 {
-			msg.Args = toks[1]
-		}
-		m.Messages = append(m.Messages, msg)
+	for part := range strings.SplitSeq(payload[1:], "|") {
+		m.Messages = append(m.Messages, parseMessageDTO(part))
 	}
 	return nil
 }
 
 func init() {
-	proto.RegisterServerType("Im",
-		func() proto.Deserializer { return &Message{} })
+	proto.Register(func() proto.Deserializer { return &Message{} })
 }

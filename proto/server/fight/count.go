@@ -8,6 +8,8 @@ import (
 )
 
 type Count struct {
+	proto.ServerSide
+
 	NFights int
 }
 
@@ -23,13 +25,12 @@ func (c *Count) Deserialize(payload string) error {
 	}
 	n, err := strconv.Atoi(payload)
 	if err != nil {
-		return proto.ErrMalformedPayload
+		return fmt.Errorf("invalid number: %q", payload)
 	}
 	c.NFights = n
 	return nil
 }
 
 func init() {
-	proto.RegisterServerType("fC",
-		func() proto.Deserializer { return &Count{} })
+	proto.Register(func() proto.Deserializer { return &Count{} })
 }

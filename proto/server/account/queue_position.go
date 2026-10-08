@@ -1,6 +1,7 @@
 package account
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -9,6 +10,8 @@ import (
 )
 
 type QueuePosition struct {
+	proto.ServerSide
+
 	Position int
 	NSubs    int
 	NNonSubs int
@@ -30,40 +33,39 @@ func (q *QueuePosition) Deserialize(payload string) error {
 
 	sli := strings.Split(payload, "|")
 	if len(sli) != 5 {
-		return proto.ErrMalformedPayload
+		return errors.New("invalid field count")
 	}
 
 	var err error
 
 	q.Position, err = strconv.Atoi(sli[0])
 	if err != nil {
-		return proto.ErrMalformedPayload
+		return fmt.Errorf("invalid number: %q", sli[0])
 	}
 
 	q.NSubs, err = strconv.Atoi(sli[1])
 	if err != nil {
-		return proto.ErrMalformedPayload
+		return fmt.Errorf("invalid number: %q", sli[1])
 	}
 
 	q.NNonSubs, err = strconv.Atoi(sli[2])
 	if err != nil {
-		return proto.ErrMalformedPayload
+		return fmt.Errorf("invalid number: %q", sli[2])
 	}
 
 	q.IsSub, err = proto.ParseBool(sli[3])
 	if err != nil {
-		return proto.ErrMalformedPayload
+		return fmt.Errorf("%w: %q", err, sli[3])
 	}
 
 	q.QueueID, err = strconv.Atoi(sli[4])
 	if err != nil {
-		return proto.ErrMalformedPayload
+		return fmt.Errorf("invalid number: %q", sli[4])
 	}
 
 	return nil
 }
 
 func init() {
-	proto.RegisterServerType("Af",
-		func() proto.Deserializer { return &QueuePosition{} })
+	proto.Register(func() proto.Deserializer { return &QueuePosition{} })
 }

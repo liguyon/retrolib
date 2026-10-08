@@ -1,6 +1,7 @@
 package game
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -9,15 +10,17 @@ import (
 )
 
 type MapData struct {
-	ID        int
-	Timestamp string
-	Key       string
+	proto.ServerSide
+
+	ID   int
+	Date string
+	Key  string
 }
 
 func (m *MapData) Opcode() proto.Opcode { return "GDM" }
 
 func (m *MapData) Serialize() (string, error) {
-	return fmt.Sprintf("|%d|%s|%s", m.ID, m.Timestamp, m.Key), nil
+	return fmt.Sprintf("|%d|%s|%s", m.ID, m.Date, m.Key), nil
 }
 
 func (m *MapData) Deserialize(payload string) error {
@@ -27,20 +30,19 @@ func (m *MapData) Deserialize(payload string) error {
 
 	sli := strings.Split(payload[1:], "|")
 	if len(sli) != 3 {
-		return proto.ErrMalformedPayload
+		return errors.New("invalid field count")
 	}
 
 	id, err := strconv.Atoi(sli[0])
 	if err != nil {
-		return proto.ErrMalformedPayload
+		return fmt.Errorf("invalid number: %q", sli[0])
 	}
 	m.ID = id
-	m.Timestamp = sli[1]
+	m.Date = sli[1]
 	m.Key = sli[2]
 	return nil
 }
 
 func init() {
-	proto.RegisterServerType("GDM",
-		func() proto.Deserializer { return &MapData{} })
+	proto.Register(func() proto.Deserializer { return &MapData{} })
 }

@@ -1,6 +1,7 @@
 package job
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -9,6 +10,8 @@ import (
 )
 
 type Options struct {
+	proto.ServerSide
+
 	JobIndex int
 	Options  int
 	MinSlots int
@@ -24,27 +27,27 @@ func (o *Options) Deserialize(payload string) error {
 	if payload == "" {
 		return proto.ErrMissingPayload
 	}
+
 	sli := strings.Split(payload, "|")
 	if len(sli) != 3 {
-		return proto.ErrMalformedPayload
+		return errors.New("invalid field count")
 	}
 	var err error
 	o.JobIndex, err = strconv.Atoi(sli[0])
 	if err != nil {
-		return proto.ErrMalformedPayload
+		return fmt.Errorf("invalid number: %q", sli[0])
 	}
 	o.Options, err = strconv.Atoi(sli[1])
 	if err != nil {
-		return proto.ErrMalformedPayload
+		return fmt.Errorf("invalid number: %q", sli[1])
 	}
 	o.MinSlots, err = strconv.Atoi(sli[2])
 	if err != nil {
-		return proto.ErrMalformedPayload
+		return fmt.Errorf("invalid number: %q", sli[2])
 	}
 	return nil
 }
 
 func init() {
-	proto.RegisterServerType("JO",
-		func() proto.Deserializer { return &Options{} })
+	proto.Register(func() proto.Deserializer { return &Options{} })
 }
