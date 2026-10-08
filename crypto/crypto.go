@@ -48,7 +48,7 @@ func DecodeKey(raw string) (Key, error) {
 	material := make([]byte, hex.DecodedLen(len(b[1:])))
 	_, err = hex.Decode(material, b[1:])
 	if err != nil {
-		return Key{}, fmt.Errorf("%w: %v", ErrMalformedKey, err)
+		return Key{}, fmt.Errorf("%w: %w", ErrMalformedKey, err)
 	}
 	if len(material) == 0 {
 		return Key{}, fmt.Errorf("%w: empty material", ErrMalformedKey)
@@ -92,19 +92,19 @@ func Decrypt(message []byte, key Key) ([]byte, error) {
 
 	sum, err := hexNibble(message[1])
 	if err != nil {
-		return nil, fmt.Errorf("invalid checksum: %v", err)
+		return nil, fmt.Errorf("invalid checksum: %w", err)
 	}
 
 	cipherBytes := make([]byte, hex.DecodedLen(len(message[2:])))
 	_, err = hex.Decode(cipherBytes, message[2:])
 	if err != nil {
-		return nil, fmt.Errorf("invalid ciphertext: %v", err)
+		return nil, fmt.Errorf("invalid ciphertext: %w", err)
 	}
 
 	plainBytes := xorStream(cipherBytes, key.Material, int(sum)*2)
 	unescaped, err := unescape(plainBytes)
 	if err != nil {
-		return nil, fmt.Errorf("invalid ciphertext: %v", err)
+		return nil, fmt.Errorf("invalid ciphertext: %w", err)
 	}
 
 	if checksum(unescaped) != sum {

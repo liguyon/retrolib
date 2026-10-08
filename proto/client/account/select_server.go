@@ -14,7 +14,7 @@ type SelectServer struct {
 func (s *SelectServer) Opcode() proto.Opcode { return "AX" }
 
 func (s *SelectServer) Serialize() (string, error) {
-	return fmt.Sprintf("%s", s.ServerID), nil
+	return fmt.Sprintf("%d", s.ServerID), nil
 }
 
 func (s *SelectServer) Deserialize(payload string) error {

@@ -20,7 +20,7 @@ func TestTrimDelim(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			res := TrimDelim(tt.msg, tt.dir)
-			if bytes.Compare(tt.expected, res) != 0 {
+			if !bytes.Equal(tt.expected, res) {
 				t.Errorf("want %q; got %q", string(tt.expected), string(res))
 			}
 		})
@@ -40,7 +40,7 @@ func TestAppendDelim(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			res := AppendDelim(tt.msg, tt.dir)
-			if bytes.Compare(res, tt.expected) != 0 {
+			if bytes.Equal(res, tt.expected) {
 				t.Errorf("want %q; got %q", string(tt.expected), string(res))
 			}
 		})

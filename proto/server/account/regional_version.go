@@ -24,7 +24,7 @@ func (r *RegionalVersion) Deserialize(payload string) error {
 
 	v, err := strconv.Atoi(payload)
 	if err != nil {
-		return fmt.Errorf("%w: %v", proto.ErrMalformedPayload, err)
+		return fmt.Errorf("%w: %w", proto.ErrMalformedPayload, err)
 	}
 
 	r.Version = v

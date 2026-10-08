@@ -41,7 +41,7 @@ func (s *ScreenInfo) Deserialize(payload string) error {
 	if len(sli[2]) != 1 {
 		return proto.ErrMalformedPayload
 	}
-	if !(sli[2][0] >= '0' && sli[2][0] <= '9') {
+	if sli[2][0] < '0' || sli[2][0] > '9' {
 		return proto.ErrMalformedPayload
 	}
 	s.State = sli[2][0]
