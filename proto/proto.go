@@ -5,15 +5,16 @@
 // The two directions of traffic are handled as separate and composable stages.
 //
 // Inbound traffic generally goes through the following pipeline:
-// raw []byte (read from wire) -> TrimDelim -> Decrypt-> ParseOpcode -> Deserialize -> Message
+// raw frame []byte -> TrimDelim -> Decrypt-> ParseFrame -> DeserializeMessage -> Message
 //
 // Outbound traffic:
-// Message (concrete, typed) -> Serialize -> Encrypt-> AppendDelim -> raw []byte
+// Message (concrete type) -> SerializeMessage -> Encrypt-> AppendDelim -> raw frame []byte
 package proto
 
 import (
 	"bytes"
 	"fmt"
+	"strings"
 )
 
 // Direction identifies which way a message travels.
@@ -24,6 +25,13 @@ const (
 	ServerToClient
 )
 
+func (d Direction) String() string {
+	if d == ServerToClient {
+		return "s2c"
+	}
+	return "c2s"
+}
+
 // Delim returns the end-of-message delimiter for a traffic direction.
 func (d Direction) Delim() []byte {
 	if d == ServerToClient {
@@ -32,28 +40,70 @@ func (d Direction) Delim() []byte {
 	return []byte("\n\x00")
 }
 
-// AppendDelim appends the end-of-message delimiter to an encoded
-// (and typically encrypted) message, producing a frame ready to write to the connection.
-func AppendDelim(msg []byte, dir Direction) []byte {
-	frame := make([]byte, 0, len(msg)+len(dir.Delim()))
-	frame = append(frame, msg...)
+// AppendDelim appends the direction's full delimiter to a serialized and typically encrypted // message, producing a frame ready to write to the connection.
+// Returns ErrDelimiterInBody if body already contains the delimiter, since that would split
+// the frame on the wire.
+func AppendDelim(body []byte, dir Direction) ([]byte, error) {
+	if bytes.HasSuffix(body, []byte("\x00")) {
+		return nil, ErrDelimiterInBody
+	}
+	frame := make([]byte, 0, len(body)+len(dir.Delim()))
+	frame = append(frame, body...)
 	frame = append(frame, dir.Delim()...)
-	return frame
+	return frame, nil
 }
 
-// TrimDelim removes the end-of-message delimiter from a raw frame read off the wire.
-func TrimDelim(frame []byte, dir Direction) []byte {
-	return bytes.TrimSuffix(frame, dir.Delim())
+// CutDelim removes the direction's full delimiter from a raw frame read off the wire.
+// Returns ErrNoDelimiter if the frame doesn't end with it (e.g. a client frame missing '\n').
+func CutDelim(frame []byte, dir Direction) ([]byte, error) {
+	if !bytes.HasSuffix(frame, dir.Delim()) {
+		return nil, ErrNoDelimiter
+	}
+	return bytes.TrimSuffix(frame, dir.Delim()), nil
 }
 
 // Opcode is the prefix identifying a message type.
 type Opcode string
 
-// Message is implemented by concrete packet types. It's the interface callers type-switch
+// Validate verifies that opcode isn't empty and isn't prefixed or suffixed with spaces.
+// Returns ErrInvalidOpcode on error.
+func (o Opcode) Validate() error {
+	trimmed := strings.TrimSpace(string(o))
+	if o == "" || trimmed == "" {
+		return fmt.Errorf("%w: empty", ErrInvalidOpcode)
+	}
+	if trimmed != string(o) {
+		return fmt.Errorf("%w: leading or trailing spaces", ErrInvalidOpcode)
+	}
+	return nil
+}
+
+// Message is implemented by concrete message types. It's the interface callers type-switch
 // on after deserializing.
 type Message interface {
 	Opcode() Opcode
+	Direction() Direction
 }
+
+type ClientMessage interface {
+	Message
+	clientSide()
+}
+
+type ClientSide struct{}
+
+func (ClientSide) Direction() Direction { return ClientToServer }
+func (ClientSide) clientSide()          {}
+
+type ServerMessage interface {
+	Message
+	serverSide()
+}
+
+type ServerSide struct{}
+
+func (ServerSide) Direction() Direction { return ServerToClient }
+func (ServerSide) serverSide()          {}
 
 // Serializer is implemented by message types that can serialize their payload (everything
 // that comes after the opcode prefix).
@@ -69,14 +119,14 @@ type Deserializer interface {
 	Deserialize(payload string) error
 }
 
-// TypeRegistry maps opcodes to constructors/factories of the associated message type.
-// A default global registry is declared in this package (see var. "registry" below). It can be
+// TypeRegistry maps opcodes to constructors for concrete message types.
+// A default registry is declared in this package (see var. "registry" below). It can be
 // populated with the types implemented under retrolib/proto/{client,server}/* by importing
 // those packages. Importing retrolib/proto/{client,server}/all blank-imports all namespaces
 // for convenience.
-// Custom type implementations can be registered in the default registry by calling the static
-// "RegisterClientType" and "RegisterServerType".
-// Users can also construct their own TypeRegistry to separate their own type implementations.
+// Custom type implementations can be registered in the default registry by calling
+// "RegisterDefault".
+// Users can also create their TypeRegistry to separate their own type implementations.
 type TypeRegistry struct {
 	reg       map[Direction]map[Opcode]func() Deserializer
 	maxLenCli int
@@ -95,44 +145,53 @@ func NewTypeRegistry() *TypeRegistry {
 	}
 }
 
-func (r *TypeRegistry) register(op Opcode, factory func() Deserializer, dir Direction) error {
-	if op == "" {
-		return ErrInvalidOpcode
+// registry is the default registry where concrete message types under proto/{client,server}
+// register their deserializer.
+var registry = NewTypeRegistry()
+
+// Register registers a concrete message type that can be deserialized, so that frames
+// with the associated opcode can later be parsed and deserialized.
+func (r *TypeRegistry) Register(factory func() Deserializer) error {
+	msg := factory()
+
+	if err := msg.Opcode().Validate(); err != nil {
+		return fmt.Errorf("%w: %q", err, msg.Opcode())
 	}
-	reg := r.reg[dir]
-	_, exists := reg[op]
+
+	reg := r.reg[msg.Direction()]
+	_, exists := reg[msg.Opcode()]
 	if exists {
-		return ErrDuplicateOpcode
+		return fmt.Errorf("%w: %s: %q",
+			ErrDuplicateOpcode, msg.Direction(), msg.Opcode())
 	}
-	reg[op] = factory
-	switch dir {
+
+	reg[msg.Opcode()] = factory
+	switch msg.Direction() {
 	case ClientToServer:
-		if len(op) > r.maxLenCli {
-			r.maxLenCli = len(op)
+		if len(msg.Opcode()) > r.maxLenCli {
+			r.maxLenCli = len(msg.Opcode())
 		}
 	case ServerToClient:
-		if len(op) > r.maxLenSvr {
-			r.maxLenSvr = len(op)
+		if len(msg.Opcode()) > r.maxLenSvr {
+			r.maxLenSvr = len(msg.Opcode())
 		}
 	}
 	return nil
 }
 
-// RegisterServerType associates an opcode to a constructor for the server Deserializer it
-// identifies.
-func (r *TypeRegistry) RegisterServerType(op Opcode, factory func() Deserializer) error {
-	return r.register(op, factory, ServerToClient)
+// Register registers in the default registry a concrete message type that can be
+// deserialized.
+func Register(factory func() Deserializer) {
+	err := registry.Register(factory)
+	if err != nil {
+		panic(err)
+	}
 }
 
-// RegisterClientType associates an opcode to a constructor for the client Deserializer it
-// identifies.
-func (r *TypeRegistry) RegisterClientType(op Opcode, factory func() Deserializer) error {
-	return r.register(op, factory, ClientToServer)
-}
-
-func (r *TypeRegistry) parse(
-	msg []byte, dir Direction) (op Opcode, payload string, err error) {
-	if len(msg) == 0 {
+// ParseFrame extracts the opcode and the raw payload from a decrypted frame.
+func (r *TypeRegistry) ParseFrame(
+	frame []byte, dir Direction) (op Opcode, payload string, err error) {
+	if len(frame) == 0 {
 		return "", "", fmt.Errorf("%w: empty message", ErrInvalidOpcode)
 	}
 
@@ -147,34 +206,31 @@ func (r *TypeRegistry) parse(
 	}
 
 	for n := maxLen; n >= 1; n-- {
-		if len(msg) < n {
+		if len(frame) < n {
 			continue
 		}
-		_, exists := reg[Opcode(msg[:n])]
+		_, exists := reg[Opcode(frame[:n])]
 		if exists {
-			return Opcode(msg[:n]), string(msg[n:]), nil
+			return Opcode(frame[:n]), string(frame[n:]), nil
 		}
 	}
 	return "", "", ErrUnknownOpcode
 }
 
-// ParseClientMessage extracts the opcode and the raw payload from a message going from a
-// client to a server.
-func (r *TypeRegistry) ParseClientMessage(msg []byte) (op Opcode, payload string, err error) {
-	return r.parse(msg, ClientToServer)
+// ParseFrame extracts the opcode and the payload from a message using the default registry.
+func ParseFrame(frame []byte, dir Direction) (op Opcode, payload string, err error) {
+	return registry.ParseFrame(frame, dir)
 }
 
-// ParseServerMessage extracts the opcode and the raw payload from a message going from a
-// server to a client.
-func (r *TypeRegistry) ParseServerMessage(msg []byte) (op Opcode, payload string, err error) {
-	return r.parse(msg, ServerToClient)
-}
-
-// DeserializeMessage instantiates the message type registered for op and populates it from
+// DeserializeMessage instantiates the message type associated with op and populates it from
 // payload. The returned Message is meant to be type-switched on to get the concrete type.
 func (r *TypeRegistry) DeserializeMessage(
 	op Opcode, payload string, dir Direction) (Message, error) {
 	reg := r.reg[dir]
+
+	if err := op.Validate(); err != nil {
+		return nil, fmt.Errorf("%w: %q", err, op)
+	}
 
 	factory, exists := reg[op]
 	if !exists {
@@ -189,48 +245,11 @@ func (r *TypeRegistry) DeserializeMessage(
 	return msg, nil
 }
 
-var registry = NewTypeRegistry()
-
-// RegisterClientType
-func RegisterClientType(op Opcode, factory func() Deserializer) {
-	err := registry.RegisterClientType(op, factory)
-	if err != nil {
-		panic(fmt.Errorf("client: %w: %q", ErrInvalidOpcode, op))
-	}
-}
-
-// RegisterServerType
-func RegisterServerType(op Opcode, factory func() Deserializer) {
-	err := registry.RegisterServerType(op, factory)
-	if err != nil {
-		panic(fmt.Errorf("server: %w: %q", ErrInvalidOpcode, op))
-	}
-}
-
-// ParseClientMessage extracts the opcode and the payload from a message by using the default
-// registry.
-func ParseClientMessage(msg []byte) (op Opcode, payload string, err error) {
-	return registry.ParseClientMessage(msg)
-}
-
-// ParseServerMessage extracts the opcode and the payload from a message by using the default
-// registry.
-func ParseServerMessage(msg []byte) (op Opcode, payload string, err error) {
-	return registry.ParseServerMessage(msg)
-}
-
-// DeserializeClientMessage instantiates the message type registered in the default registry
+// DeserializeMessage instantiates the message type registered in the default registry
 // for op and populates it from payload. The returned Message is meant to be type-switched on
 // to get the concrete type.
-func DeserializeClientMessage(op Opcode, payload string) (Message, error) {
-	return registry.DeserializeMessage(op, payload, ClientToServer)
-}
-
-// DeserializeServerMessage instantiates the message type registered in the default registry
-// for op and populates it from payload. The returned Message is meant to be type-switched on
-// to get the concrete type.
-func DeserializeServerMessage(op Opcode, payload string) (Message, error) {
-	return registry.DeserializeMessage(op, payload, ServerToClient)
+func DeserializeMessage(op Opcode, payload string, dir Direction) (Message, error) {
+	return registry.DeserializeMessage(op, payload, dir)
 }
 
 // SerializeMessage serializes a message into its pre-processed wire format: the opcode prefix
@@ -238,7 +257,7 @@ func DeserializeServerMessage(op Opcode, payload string) (Message, error) {
 func SerializeMessage(msg Serializer) ([]byte, error) {
 	body, err := msg.Serialize()
 	if err != nil {
-		return nil, fmt.Errorf("serialize %q: %w", msg.Opcode(), err)
+		return nil, fmt.Errorf("%w: %w", ErrInvalidMessage, err)
 	}
 	return []byte(fmt.Sprintf("%s%s", msg.Opcode(), body)), nil
 }

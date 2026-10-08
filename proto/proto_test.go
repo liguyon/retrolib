@@ -2,26 +2,49 @@ package proto
 
 import (
 	"bytes"
-	//	"errors"
+	"errors"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
-func TestTrimDelim(t *testing.T) {
+func TestCutDelim(t *testing.T) {
 	tests := []struct {
-		name     string
-		msg      []byte
-		dir      Direction
-		expected []byte
+		name string
+		msg  []byte
+		dir  Direction
+		want []byte
 	}{
 		{"svr", []byte("AlK0\x00"), ServerToClient, []byte("AlK0")},
 		{"cli", []byte("Af\n\x00"), ClientToServer, []byte("Af")},
-		{"no delim", []byte("Af"), ClientToServer, []byte("Af")},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			res := TrimDelim(tt.msg, tt.dir)
-			if !bytes.Equal(tt.expected, res) {
-				t.Errorf("want %q; got %q", string(tt.expected), string(res))
+			res, err := CutDelim(tt.msg, tt.dir)
+			if err != nil {
+				t.Fatalf("unexpected err=%v", err)
+			}
+			if !bytes.Equal(tt.want, res) {
+				t.Errorf("want %q; got %q", string(tt.want), string(res))
+			}
+		})
+	}
+}
+
+func TestCutDelim_Err(t *testing.T) {
+	tests := []struct {
+		name  string
+		frame []byte
+		dir   Direction
+	}{
+		{"no delim", []byte("AlK0"), ServerToClient},
+		{"client missing newline", []byte("Af\x00"), ClientToServer},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := CutDelim(tt.frame, tt.dir)
+			if !errors.Is(err, ErrNoDelimiter) {
+				t.Fatalf("want ErrNoDelimiter; got err=%v", err)
 			}
 		})
 	}
@@ -29,180 +52,210 @@ func TestTrimDelim(t *testing.T) {
 
 func TestAppendDelim(t *testing.T) {
 	tests := []struct {
-		name     string
-		msg      []byte
-		dir      Direction
-		expected []byte
+		name  string
+		frame []byte
+		dir   Direction
+		want  []byte
 	}{
 		{"svr", []byte("AlK0"), ServerToClient, []byte("AlK0\x00")},
 		{"cli", []byte("Af"), ClientToServer, []byte("Af\n\x00")},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			res := AppendDelim(tt.msg, tt.dir)
-			if bytes.Equal(res, tt.expected) {
-				t.Errorf("want %q; got %q", string(tt.expected), string(res))
-			}
-		})
-	}
-}
-
-/*
-func TestRegisterType(t *testing.T) {
-	clientRegistry = map[Opcode]func() Deserializer{}
-	maxClientOpcodeLen = 0
-
-	tests := []struct {
-		name        string
-		op          Opcode
-		dir         Direction
-		expectedLen int
-	}{
-		{"cli", "Ax", ClientToServer, 2},
-		{"longer", "ABCDEF", ClientToServer, 6},
-		{"len unchanged", "AH", ClientToServer, 6},
-		// test panic?
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			RegisterType(tt.op, nil, tt.dir)
-			_, exists := clientRegistry[tt.op]
-			if !exists {
-				t.Fatal("not registered")
-			}
-			if maxClientOpcodeLen != tt.expectedLen {
-				t.Errorf("want maxLen %d; got %d", tt.expectedLen,
-					maxClientOpcodeLen)
-			}
-		})
-	}
-}
-
-func TestParseMessage(t *testing.T) {
-	clientRegistry = map[Opcode]func() Deserializer{}
-	maxClientOpcodeLen = 0
-	RegisterClientType("AT", nil)
-	RegisterClientType("Af", nil)
-
-	tests := []struct {
-		name            string
-		msg             []byte
-		expectedOpcode  Opcode
-		expectedPayload string
-		expectedErr     error
-	}{
-		{"no payload", []byte("Af"), "Af", "", nil},
-		{"with payload", []byte("ATblabla"), "AT", "blabla", nil},
-		{"empty msg", []byte{}, "", "", ErrInvalidOpcode},
-		{"unknown opcode", []byte("HCblabla"), "", "", ErrUnknownOpcode},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			op, pl, err := ParseClientMessage(tt.msg)
-			if err == nil && tt.expectedErr != nil {
-				t.Fatalf("want err; got none")
-			}
-			if err != nil && tt.expectedErr == nil {
-				t.Fatalf("want no err; got %v", err)
-			}
-
+			res, err := AppendDelim(tt.frame, tt.dir)
 			if err != nil {
-				if !errors.Is(err, tt.expectedErr) {
-					t.Errorf("want err %v; got %v", tt.expectedErr, err)
-				}
+				t.Fatalf("unexpected err=%v", err)
 			}
-
-			if op != tt.expectedOpcode {
-				t.Errorf("want opcode %q; got %q", tt.expectedOpcode, op)
-			}
-
-			if pl != tt.expectedPayload {
-				t.Errorf("want payload %q; got %q", tt.expectedPayload, pl)
+			if !bytes.Equal(res, tt.want) {
+				t.Errorf("want %q; got %q", string(tt.want), string(res))
 			}
 		})
 	}
 }
 
-type fakeTicket struct {
-	Ticket string
+func TestAppendDelim_Err(t *testing.T) {
+	tests := []struct {
+		name  string
+		frame []byte
+		dir   Direction
+	}{
+		{"svr", []byte("AlK0\x00"), ServerToClient},
+		{"cli", []byte("Af\n\x00"), ClientToServer},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := AppendDelim(tt.frame, tt.dir)
+			if !errors.Is(err, ErrDelimiterInBody) {
+				t.Fatalf("want ErrDelimiterInBody; got err=%v", err)
+			}
+		})
+	}
 }
 
-func (f *fakeTicket) Opcode() Opcode { return "AT" }
+type fakeHello struct {
+	ServerSide
+	Rest string
+}
 
-func (f *fakeTicket) Serialize() (string, error) { return f.Ticket, nil }
-
-func (f *fakeTicket) Deserialize(payload string) error {
-	f.Ticket = payload
+func (f *fakeHello) Opcode() Opcode { return "hello" }
+func (f *fakeHello) Deserialize(payload string) error {
+	if payload == "" {
+		return ErrMissingPayload
+	}
+	f.Rest = payload
 	return nil
 }
+func (f *fakeHello) Serialize() (string, error) {
+	if f.Rest == "" {
+		return "", errors.New("empty")
+	}
+	return f.Rest, nil
+}
 
-type fakeDisconnect struct{}
+type fakeHelloCli struct {
+	ClientSide
+	Rest string
+}
 
-func (f *fakeDisconnect) Opcode() Opcode { return "BYE" }
+func (f *fakeHelloCli) Opcode() Opcode { return "hello" }
+func (f *fakeHelloCli) Deserialize(payload string) error {
+	if payload == "" {
+		return ErrMissingPayload
+	}
+	f.Rest = payload
+	return nil
+}
+func (f *fakeHelloCli) Serialize() (string, error) {
+	if f.Rest == "" {
+		return "", errors.New("empty")
+	}
+	return f.Rest, nil
+}
 
-func (f *fakeDisconnect) Serialize() (string, error) { return "", nil }
+type fakeEmpty struct{ ServerSide }
 
-func (f *fakeDisconnect) Deserialize(payload string) error { return nil }
+func (f *fakeEmpty) Opcode() Opcode           { return "" }
+func (f *fakeEmpty) Deserialize(string) error { return nil }
 
-func TestSerializeMessage(t *testing.T) {
+func newTestRegistry(t *testing.T) *TypeRegistry {
+	t.Helper()
+
+	reg := NewTypeRegistry()
+
+	err := reg.Register(func() Deserializer { return &fakeHello{} })
+	if err != nil {
+		t.Fatalf("unexpected err=%v", err)
+	}
+
+	err = reg.Register(func() Deserializer { return &fakeHello{} })
+	if !errors.Is(err, ErrDuplicateOpcode) {
+		t.Fatalf("want ErrDuplicateOpcode; got err=%v", err)
+	}
+
+	err = reg.Register(func() Deserializer { return &fakeHelloCli{} })
+	if err != nil {
+		t.Fatalf("unexpected err=%v", err)
+	}
+
+	err = reg.Register(func() Deserializer { return &fakeHelloCli{} })
+	if !errors.Is(err, ErrDuplicateOpcode) {
+		t.Fatalf("want ErrDuplicateOpcode; got err=%v", err)
+	}
+
+	err = reg.Register(func() Deserializer { return &fakeEmpty{} })
+	if !errors.Is(err, ErrInvalidOpcode) {
+		t.Fatalf("want ErrInvalidOpcode; got err=%v", err)
+	}
+	return reg
+}
+
+func TestParseFrame(t *testing.T) {
+	reg := newTestRegistry(t)
+
 	tests := []struct {
 		name        string
-		msg         Serializer
-		expected    []byte
-		expectedErr error
+		frame       string
+		dir         Direction
+		wantOp      Opcode
+		wantPayload string
+		wantErr     error
 	}{
-		{"with payload", &fakeTicket{Ticket: "ABCdef123"}, []byte("ATABCdef123"), nil},
-		{"empty payload", &fakeDisconnect{}, []byte("BYE"), nil},
+		{"valid svr", "helloworld", ServerToClient, "hello", "world", nil},
+		{"valid cli", "helloworld", ClientToServer, "hello", "world", nil},
+		{"err empty", "", ClientToServer, "", "", ErrInvalidOpcode},
+		{"err unknown", "holazawarudo", ServerToClient, "", "", ErrUnknownOpcode},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			res, err := SerializeMessage(tt.msg)
-			if err == nil && tt.expectedErr != nil {
-				t.Fatalf("want err; got none")
+			op, pl, err := reg.ParseFrame([]byte(tt.frame), tt.dir)
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf("err=%v; want %v", err, tt.wantErr)
 			}
-			if err != nil && tt.expectedErr == nil {
-				t.Fatalf("want no err; got %v", err)
+			if op != tt.wantOp {
+				t.Fatalf("op=%q; want %q", op, tt.wantOp)
 			}
-			if err != nil {
-				if !errors.Is(err, tt.expectedErr) {
-					t.Errorf("want err %v; got %v", tt.expectedErr, err)
-				}
-			}
-
-			if bytes.Compare(res, tt.expected) != 0 {
-				t.Errorf("want %q; got %q", string(tt.expected), string(res))
+			if pl != tt.wantPayload {
+				t.Fatalf("payload=%q; want %q", pl, tt.wantPayload)
 			}
 		})
 	}
 }
 
 func TestDeserializeMessage(t *testing.T) {
-	clientRegistry = map[Opcode]func() Deserializer{}
-	maxClientOpcodeLen = 0
-	RegisterClientType("AT", func() Deserializer { return &fakeTicket{} })
-	RegisterClientType("BYE", func() Deserializer { return &fakeDisconnect{} })
+	reg := newTestRegistry(t)
 
-	msg, err := DeserializeClientMessage("AT", "123abc")
-	if err != nil {
-		t.Fatalf("want no err; got %v", err)
+	tests := []struct {
+		name    string
+		op      Opcode
+		pl      string
+		dir     Direction
+		wantMsg Message
+		wantErr error
+	}{
+		{"valid svr", "hello", "World", ServerToClient,
+			&fakeHello{Rest: "World"}, nil},
+		{"valid cli", "hello", "lesgens", ClientToServer,
+			&fakeHelloCli{Rest: "lesgens"}, nil},
+		{"unknown op", "xinchao", "moinguoi", ClientToServer,
+			nil, ErrUnknownOpcode},
+		{"empty op", "   ", "", ClientToServer,
+			nil, ErrInvalidOpcode},
+		{"deserialize error propagates", "hello", "", ServerToClient,
+			nil, ErrMissingPayload},
 	}
-	switch m := msg.(type) {
-	case *fakeTicket:
-		if m.Ticket != "123abc" {
-			t.Fatalf("want ticket=\"123abc\"; got %q", m.Ticket)
-		}
-	default:
-		t.Fatalf("could not type-switch")
-	}
-
-	msg, err = DeserializeClientMessage("BYE", "")
-	if err != nil {
-		t.Fatalf("want no err; got %v", err)
-	}
-	switch msg.(type) {
-	case *fakeDisconnect:
-	default:
-		t.Fatalf("could not type-switch")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			msg, err := reg.DeserializeMessage(tt.op, tt.pl, tt.dir)
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf("err=%v; want %v", err, tt.wantErr)
+			}
+			if diff := cmp.Diff(tt.wantMsg, msg); diff != "" {
+				t.Errorf("-want +got:\n%s", diff)
+			}
+		})
 	}
 }
-*/
+
+func TestSerializeMessage(t *testing.T) {
+	tests := []struct {
+		name    string
+		msg     Serializer
+		want    []byte
+		wantErr error
+	}{
+		{"valid svr", &fakeHello{Rest: "world"}, []byte("helloworld"), nil},
+		{"valid cli", &fakeHelloCli{Rest: "olleh"}, []byte("helloolleh"), nil},
+		{"serialize error propagates", &fakeHello{}, nil, ErrInvalidMessage},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			body, err := SerializeMessage(tt.msg)
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf("err=%v; want %v", err, tt.wantErr)
+			}
+			if !bytes.Equal(body, tt.want) {
+				t.Fatalf("body=%q; want %q", body, tt.want)
+			}
+		})
+	}
+}
