@@ -17,18 +17,20 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: format
+      - name: Check format
         run: |
-          go install golang.org/x/tools/cmd/goimports@latest
+          go install golang.org/x/tools/cmd/goimports@v0.51.0
           test -z "$(goimports -l .)" || { goimports -l .; exit 1; }
-      - uses: golangci/golangci-lint-action@v8
+      - name: Check lint
+        uses: golangci/golangci-lint-action@v8
         with:
           version: v2.14.0
-      - name: build
+      - name: Check build
         run: go build ./...
-      - name: test
+      - name: Run tests
         run: go test -race ./...
-      - name: vulncheck
-        run: |
-          go install golang.org/x/vuln/cmd/govulncheck@latest
-          govulncheck ./...
+      - name: Check Go vulnerabilities
+        uses: golang/govulncheck-action@v1
+        with:
+          go-version-file: go.mod
+          go-package: ./...
