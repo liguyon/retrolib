@@ -8,6 +8,8 @@ import (
 )
 
 type ResetCharacter struct {
+	proto.ClientSide
+
 	CharacterID int
 }
 
@@ -23,13 +25,12 @@ func (r *ResetCharacter) Deserialize(payload string) error {
 	}
 	id, err := strconv.Atoi(payload)
 	if err != nil {
-		return proto.ErrMalformedPayload
+		return fmt.Errorf("invalid number: %q", payload)
 	}
 	r.CharacterID = id
 	return nil
 }
 
 func init() {
-	proto.RegisterClientType("AR",
-		func() proto.Deserializer { return &ResetCharacter{} })
+	proto.Register(func() proto.Deserializer { return &ResetCharacter{} })
 }

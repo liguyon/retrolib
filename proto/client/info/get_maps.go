@@ -5,6 +5,7 @@ import (
 )
 
 type GetMaps struct {
+	proto.ClientSide
 }
 
 func (g *GetMaps) Opcode() proto.Opcode { return "IM" }
@@ -18,6 +19,5 @@ func (g *GetMaps) Deserialize(payload string) error {
 }
 
 func init() {
-	proto.RegisterClientType("IM",
-		func() proto.Deserializer { return &GetMaps{} })
+	proto.Register(func() proto.Deserializer { return &GetMaps{} })
 }

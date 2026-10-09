@@ -1,10 +1,14 @@
 package aks
 
 import (
+	"errors"
+
 	"github.com/liguyon/retrolib/proto"
 )
 
 type RPong struct {
+	proto.ClientSide
+
 	Payload string
 }
 
@@ -12,7 +16,7 @@ func (r *RPong) Opcode() proto.Opcode { return "rpong" }
 
 func (r *RPong) Serialize() (string, error) {
 	if len(r.Payload) != 5 {
-		return "", proto.ErrMalformedPayload
+		return "", errors.New("invalid payload length")
 	}
 	return r.Payload, nil
 }
@@ -22,7 +26,7 @@ func (r *RPong) Deserialize(payload string) error {
 		return proto.ErrMissingPayload
 	}
 	if len(payload) != 5 {
-		return proto.ErrMalformedPayload
+		return errors.New("invalid payload length")
 	}
 
 	r.Payload = payload
@@ -30,6 +34,5 @@ func (r *RPong) Deserialize(payload string) error {
 }
 
 func init() {
-	proto.RegisterClientType("rpong",
-		func() proto.Deserializer { return &RPong{} })
+	proto.Register(func() proto.Deserializer { return &RPong{} })
 }

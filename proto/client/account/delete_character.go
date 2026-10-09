@@ -1,6 +1,7 @@
 package account
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -9,6 +10,8 @@ import (
 )
 
 type DeleteCharacter struct {
+	proto.ClientSide
+
 	CharacterID  int
 	SecretAnswer string
 }
@@ -25,11 +28,11 @@ func (d *DeleteCharacter) Deserialize(payload string) error {
 	}
 	sli := strings.Split(payload, "|")
 	if len(sli) != 2 {
-		return proto.ErrMissingPayload
+		return errors.New("invalid field count")
 	}
 	id, err := strconv.Atoi(sli[0])
 	if err != nil {
-		return proto.ErrMissingPayload
+		return fmt.Errorf("invalid number: %q", sli[0])
 	}
 	d.CharacterID = id
 	d.SecretAnswer = sli[0]
@@ -37,6 +40,5 @@ func (d *DeleteCharacter) Deserialize(payload string) error {
 }
 
 func init() {
-	proto.RegisterClientType("AD",
-		func() proto.Deserializer { return &DeleteCharacter{} })
+	proto.Register(func() proto.Deserializer { return &DeleteCharacter{} })
 }

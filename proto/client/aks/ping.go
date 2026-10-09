@@ -5,6 +5,7 @@ import (
 )
 
 type Ping struct {
+	proto.ClientSide
 }
 
 func (p *Ping) Opcode() proto.Opcode { return "ping" }
@@ -18,6 +19,5 @@ func (p *Ping) Deserialize(payload string) error {
 }
 
 func init() {
-	proto.RegisterClientType("ping",
-		func() proto.Deserializer { return &Ping{} })
+	proto.Register(func() proto.Deserializer { return &Ping{} })
 }

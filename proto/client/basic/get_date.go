@@ -5,6 +5,7 @@ import (
 )
 
 type GetDate struct {
+	proto.ClientSide
 }
 
 func (g *GetDate) Opcode() proto.Opcode { return "BD" }
@@ -18,6 +19,5 @@ func (g *GetDate) Deserialize(payload string) error {
 }
 
 func init() {
-	proto.RegisterClientType("BD",
-		func() proto.Deserializer { return &GetDate{} })
+	proto.Register(func() proto.Deserializer { return &GetDate{} })
 }

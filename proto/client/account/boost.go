@@ -1,6 +1,7 @@
 package account
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -9,6 +10,8 @@ import (
 )
 
 type Boost struct {
+	proto.ClientSide
+
 	CharacteristicID int
 	Amount           int
 }
@@ -25,15 +28,15 @@ func (b *Boost) Deserialize(payload string) error {
 	}
 	sli := strings.Split(payload, "|")
 	if len(sli) != 2 {
-		return proto.ErrMalformedPayload
+		return errors.New("invalid field count")
 	}
 	id, err := strconv.Atoi(sli[0])
 	if err != nil {
-		return proto.ErrMalformedPayload
+		return fmt.Errorf("invalid number: %q", sli[0])
 	}
 	n, err := strconv.Atoi(sli[1])
 	if err != nil {
-		return proto.ErrMalformedPayload
+		return fmt.Errorf("invalid number: %q", sli[1])
 	}
 	b.CharacteristicID = id
 	b.Amount = n
@@ -41,6 +44,5 @@ func (b *Boost) Deserialize(payload string) error {
 }
 
 func init() {
-	proto.RegisterClientType("AB",
-		func() proto.Deserializer { return &Boost{} })
+	proto.Register(func() proto.Deserializer { return &Boost{} })
 }

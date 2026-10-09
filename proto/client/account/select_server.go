@@ -8,6 +8,8 @@ import (
 )
 
 type SelectServer struct {
+	proto.ClientSide
+
 	ServerID int
 }
 
@@ -24,13 +26,12 @@ func (s *SelectServer) Deserialize(payload string) error {
 
 	id, err := strconv.Atoi(payload)
 	if err != nil {
-		return proto.ErrMalformedPayload
+		return fmt.Errorf("invalid number: %q", payload)
 	}
 	s.ServerID = id
 	return nil
 }
 
 func init() {
-	proto.RegisterClientType("AX",
-		func() proto.Deserializer { return &SelectServer{} })
+	proto.Register(func() proto.Deserializer { return &SelectServer{} })
 }

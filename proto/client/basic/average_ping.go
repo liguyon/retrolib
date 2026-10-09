@@ -1,6 +1,7 @@
 package basic
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -9,6 +10,8 @@ import (
 )
 
 type AveragePing struct {
+	proto.ClientSide
+
 	Ping       int
 	NSamples   int
 	BufferSize int
@@ -26,19 +29,19 @@ func (a *AveragePing) Deserialize(payload string) error {
 	}
 	sli := strings.Split(payload, "|")
 	if len(sli) != 3 {
-		return proto.ErrMalformedPayload
+		return errors.New("invalid field count")
 	}
 	ping, err := strconv.Atoi(sli[0])
 	if err != nil {
-		return proto.ErrMalformedPayload
+		return fmt.Errorf("invalid number: %q", sli[0])
 	}
 	samples, err := strconv.Atoi(sli[1])
 	if err != nil {
-		return proto.ErrMalformedPayload
+		return fmt.Errorf("invalid number: %q", sli[1])
 	}
 	bufsize, err := strconv.Atoi(sli[2])
 	if err != nil {
-		return proto.ErrMalformedPayload
+		return fmt.Errorf("invalid number: %q", sli[2])
 	}
 	a.Ping = ping
 	a.NSamples = samples
@@ -47,6 +50,5 @@ func (a *AveragePing) Deserialize(payload string) error {
 }
 
 func init() {
-	proto.RegisterClientType("Bp",
-		func() proto.Deserializer { return &AveragePing{} })
+	proto.Register(func() proto.Deserializer { return &AveragePing{} })
 }

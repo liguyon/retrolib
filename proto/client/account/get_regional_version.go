@@ -4,7 +4,9 @@ import (
 	"github.com/liguyon/retrolib/proto"
 )
 
-type GetRegionalVersion struct{}
+type GetRegionalVersion struct {
+	proto.ClientSide
+}
 
 func (g *GetRegionalVersion) Opcode() proto.Opcode { return "AV" }
 
@@ -13,6 +15,5 @@ func (g *GetRegionalVersion) Serialize() (string, error) { return "", nil }
 func (g *GetRegionalVersion) Deserialize(payload string) error { return nil }
 
 func init() {
-	proto.RegisterClientType("AV",
-		func() proto.Deserializer { return &GetRegionalVersion{} })
+	proto.Register(func() proto.Deserializer { return &GetRegionalVersion{} })
 }

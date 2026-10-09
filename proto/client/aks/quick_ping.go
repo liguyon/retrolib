@@ -5,6 +5,7 @@ import (
 )
 
 type QuickPing struct {
+	proto.ClientSide
 }
 
 func (q *QuickPing) Opcode() proto.Opcode { return "qping" }
@@ -18,6 +19,5 @@ func (q *QuickPing) Deserialize(payload string) error {
 }
 
 func init() {
-	proto.RegisterClientType("qping",
-		func() proto.Deserializer { return &QuickPing{} })
+	proto.Register(func() proto.Deserializer { return &QuickPing{} })
 }

@@ -8,6 +8,8 @@ import (
 )
 
 type SelectCharacter struct {
+	proto.ClientSide
+
 	CharacterID int
 }
 
@@ -23,13 +25,12 @@ func (s *SelectCharacter) Deserialize(payload string) error {
 	}
 	id, err := strconv.Atoi(payload)
 	if err != nil {
-		return proto.ErrMalformedPayload
+		return fmt.Errorf("invalid number: %q", payload)
 	}
 	s.CharacterID = id
 	return nil
 }
 
 func init() {
-	proto.RegisterClientType("AS",
-		func() proto.Deserializer { return &SelectCharacter{} })
+	proto.Register(func() proto.Deserializer { return &SelectCharacter{} })
 }

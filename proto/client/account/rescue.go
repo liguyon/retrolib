@@ -1,10 +1,14 @@
 package account
 
 import (
+	"errors"
+
 	"github.com/liguyon/retrolib/proto"
 )
 
 type Rescue struct {
+	proto.ClientSide
+
 	Ticket string
 }
 
@@ -12,7 +16,7 @@ func (r *Rescue) Opcode() proto.Opcode { return "Ar" }
 
 func (r *Rescue) Serialize() (string, error) {
 	if r.Ticket == "" {
-		return "", proto.ErrMissingPayload
+		return "", errors.New("empty ticket")
 	}
 	return r.Ticket, nil
 }
@@ -26,6 +30,5 @@ func (r *Rescue) Deserialize(payload string) error {
 }
 
 func init() {
-	proto.RegisterClientType("Ar",
-		func() proto.Deserializer { return &Rescue{} })
+	proto.Register(func() proto.Deserializer { return &Rescue{} })
 }

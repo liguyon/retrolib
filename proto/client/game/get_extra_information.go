@@ -4,7 +4,9 @@ import (
 	"github.com/liguyon/retrolib/proto"
 )
 
-type GetExtraInformation struct{}
+type GetExtraInformation struct {
+	proto.ClientSide
+}
 
 func (g *GetExtraInformation) Opcode() proto.Opcode { return "GI" }
 
@@ -13,6 +15,5 @@ func (g *GetExtraInformation) Serialize() (string, error) { return "", nil }
 func (g *GetExtraInformation) Deserialize(payload string) error { return nil }
 
 func init() {
-	proto.RegisterClientType("GI",
-		func() proto.Deserializer { return &GetExtraInformation{} })
+	proto.Register(func() proto.Deserializer { return &GetExtraInformation{} })
 }

@@ -8,6 +8,8 @@ import (
 )
 
 type Create struct {
+	proto.ClientSide
+
 	Type int
 }
 
@@ -23,13 +25,12 @@ func (c *Create) Deserialize(payload string) error {
 	}
 	t, err := strconv.Atoi(payload)
 	if err != nil {
-		return proto.ErrMalformedPayload
+		return fmt.Errorf("invalid number: %q", payload)
 	}
 	c.Type = t
 	return nil
 }
 
 func init() {
-	proto.RegisterClientType("GC",
-		func() proto.Deserializer { return &Create{} })
+	proto.Register(func() proto.Deserializer { return &Create{} })
 }

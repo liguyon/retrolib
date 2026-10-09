@@ -5,6 +5,7 @@ import (
 )
 
 type GetServers struct {
+	proto.ClientSide
 }
 
 func (g *GetServers) Opcode() proto.Opcode { return "Ax" }
@@ -18,6 +19,5 @@ func (g *GetServers) Deserialize(payload string) error {
 }
 
 func init() {
-	proto.RegisterClientType("Ax",
-		func() proto.Deserializer { return &GetServers{} })
+	proto.Register(func() proto.Deserializer { return &GetServers{} })
 }

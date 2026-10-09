@@ -5,6 +5,7 @@ import (
 )
 
 type Accept struct {
+	proto.ClientSide
 }
 
 func (a *Accept) Opcode() proto.Opcode { return "EK" }
@@ -18,6 +19,5 @@ func (a *Accept) Deserialize(payload string) error {
 }
 
 func init() {
-	proto.RegisterClientType("EK",
-		func() proto.Deserializer { return &Accept{} })
+	proto.Register(func() proto.Deserializer { return &Accept{} })
 }

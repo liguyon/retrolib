@@ -8,6 +8,8 @@ import (
 )
 
 type GetMapData struct {
+	proto.ClientSide
+
 	MapID *int
 }
 
@@ -26,13 +28,12 @@ func (g *GetMapData) Deserialize(payload string) error {
 	}
 	id, err := strconv.Atoi(payload)
 	if err != nil {
-		return proto.ErrMalformedPayload
+		return fmt.Errorf("invalid number: %q", payload)
 	}
 	*g.MapID = id
 	return nil
 }
 
 func init() {
-	proto.RegisterClientType("GD",
-		func() proto.Deserializer { return &GetMapData{} })
+	proto.Register(func() proto.Deserializer { return &GetMapData{} })
 }

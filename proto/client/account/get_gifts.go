@@ -1,10 +1,14 @@
 package account
 
 import (
+	"errors"
+
 	"github.com/liguyon/retrolib/proto"
 )
 
 type GetGifts struct {
+	proto.ClientSide
+
 	LanguageCode string
 }
 
@@ -12,7 +16,7 @@ func (g *GetGifts) Opcode() proto.Opcode { return "Ag" }
 
 func (g *GetGifts) Serialize() (string, error) {
 	if g.LanguageCode == "" {
-		return "", proto.ErrMissingPayload
+		return "", errors.New("empty language code")
 	}
 	return g.LanguageCode, nil
 }
@@ -26,6 +30,5 @@ func (g *GetGifts) Deserialize(payload string) error {
 }
 
 func init() {
-	proto.RegisterClientType("Ag",
-		func() proto.Deserializer { return &GetGifts{} })
+	proto.Register(func() proto.Deserializer { return &GetGifts{} })
 }

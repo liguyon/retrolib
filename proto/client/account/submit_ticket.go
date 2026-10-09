@@ -1,16 +1,23 @@
 package account
 
 import (
+	"errors"
+
 	"github.com/liguyon/retrolib/proto"
 )
 
 type SubmitTicket struct {
+	proto.ClientSide
+
 	Ticket string
 }
 
 func (t *SubmitTicket) Opcode() proto.Opcode { return "AT" }
 
 func (t *SubmitTicket) Serialize() (string, error) {
+	if t.Ticket == "" {
+		return "", errors.New("empty ticket")
+	}
 	return t.Ticket, nil
 }
 
@@ -24,5 +31,5 @@ func (t *SubmitTicket) Deserialize(payload string) error {
 }
 
 func init() {
-	proto.RegisterClientType("AT", func() proto.Deserializer { return &SubmitTicket{} })
+	proto.Register(func() proto.Deserializer { return &SubmitTicket{} })
 }

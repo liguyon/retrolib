@@ -1,6 +1,7 @@
 package info
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -9,6 +10,8 @@ import (
 )
 
 type ScreenInfo struct {
+	proto.ClientSide
+
 	Width  int
 	Height int
 	State  byte
@@ -26,29 +29,28 @@ func (s *ScreenInfo) Deserialize(payload string) error {
 	}
 	sli := strings.Split(payload, ";")
 	if len(sli) != 3 {
-		return proto.ErrMalformedPayload
+		return errors.New("invalid field count")
 	}
 
 	var err error
 	s.Width, err = strconv.Atoi(sli[0])
 	if err != nil {
-		return proto.ErrMalformedPayload
+		return fmt.Errorf("invalid number: %q", sli[0])
 	}
 	s.Height, err = strconv.Atoi(sli[1])
 	if err != nil {
-		return proto.ErrMalformedPayload
+		return fmt.Errorf("invalid number: %q", sli[1])
 	}
 	if len(sli[2]) != 1 {
-		return proto.ErrMalformedPayload
+		return fmt.Errorf("not a char: %q", sli[2])
 	}
 	if sli[2][0] < '0' || sli[2][0] > '9' {
-		return proto.ErrMalformedPayload
+		return fmt.Errorf("invalid digit: %c", sli[2][0])
 	}
 	s.State = sli[2][0]
 	return nil
 }
 
 func init() {
-	proto.RegisterClientType("Ir",
-		func() proto.Deserializer { return &ScreenInfo{} })
+	proto.Register(func() proto.Deserializer { return &ScreenInfo{} })
 }

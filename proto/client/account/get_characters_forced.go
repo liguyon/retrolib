@@ -5,6 +5,7 @@ import (
 )
 
 type GetCharactersForced struct {
+	proto.ClientSide
 }
 
 func (g *GetCharactersForced) Opcode() proto.Opcode { return "ALf" }
@@ -18,6 +19,5 @@ func (g *GetCharactersForced) Deserialize(payload string) error {
 }
 
 func init() {
-	proto.RegisterClientType("ALf",
-		func() proto.Deserializer { return &GetCharactersForced{} })
+	proto.Register(func() proto.Deserializer { return &GetCharactersForced{} })
 }
