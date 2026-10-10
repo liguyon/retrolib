@@ -214,7 +214,7 @@ func (r *TypeRegistry) ParseFrame(
 			return Opcode(frame[:n]), string(frame[n:]), nil
 		}
 	}
-	return "", "", ErrUnknownOpcode
+	return "", "", fmt.Errorf("%w: %q", ErrUnknownOpcode, string(frame))
 }
 
 // ParseFrame extracts the opcode and the payload from a message using the default registry.
